@@ -1,3 +1,7 @@
+/***
+["org.glassfish.jersey.core:jersey-client:2.22.1"]
+*/
+
 import java.util.stream.*;
 
 class Test {

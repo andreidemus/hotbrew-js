@@ -28,7 +28,7 @@ function resolveDeps(filename) {
 	const re = /(?:\/\*\*\*)([\s\S]*)(?:\*\/)/m;
 	const file = fs.readFileSync(filename, "utf8");
 	const m = file.match(re);
-	if (m != null) {
+	if (m) {
 		const deps = eval(m[1]);
 		deps.forEach(d => {
 			let path = repo + pathFromDep(d);
