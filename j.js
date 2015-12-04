@@ -7,26 +7,19 @@ if (process.argv.length < 3) {
 	return 0;
 }
 
-const repo = 'http://repo.maven.apache.org/maven2/';
-
 const filename = process.argv[2];
 
 const exec = require('child_process').execSync;
 const fs = require('fs');
 
 function compile(filename, cp) {
-	let cmd = 'javac ' + filename;
-	if (cp) {
-		cmd += ' -cp ' + cp;
-	}
+	let cmd = 'javac ' + filename + ' -cp "./:' + cp + '"';
 	exec(cmd);
 }
 
 function run(filename, args, cp) {
 	const shortname = filename.split('.')[0];
-	let cmd = 'java ';
-	cmd += ' -cp "./:' + cp + '" ';
-	cmd += shortname + ' ' + args.join(' ');
+	let cmd = 'java  -cp "./:' + cp + '" ' + shortname + ' ' + args.join(' ');
 	return exec(cmd);
 }
 
