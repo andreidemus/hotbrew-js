@@ -11,15 +11,46 @@ const filename = process.argv[2];
 
 const exec = require('child_process').execSync;
 const fs = require('fs');
+const crypto = require('crypto');
+const sha1 = crypto.createHash('sha1');
 
-function compile(filename, cp) {
-	let cmd = 'javac ' + filename + ' -cp "./:' + cp + '"';
+const hotbrewDir = getUserHome() + '/.hotbrew';
+if (!fs.existsSync(hotbrewDir)) {
+    fs.mkdirSync(hotbrewDir);
+}
+
+const workDirs = hotbrewDir + '/work_dirs/'; 
+if (!fs.existsSync(workDirs)) {
+    fs.mkdirSync(workDirs);
+}
+
+const file = fs.readFileSync(filename, "utf8");
+
+sha1.update(file);
+const workDir = workDirs + sha1.digest('hex') + '/';
+console.log("** Script work dir is " + workDir);
+if (!fs.existsSync(workDir)) {
+    fs.mkdirSync(workDir);
+}
+
+resolveDeps();
+const cp = workDir + ':' + fs.readFileSync(workDir + 'cp.txt', 'utf8');
+compile();
+const out = run(process.argv.slice(3));
+console.log(out.toString('utf8'));
+
+function getUserHome() {
+    return process.env.HOME || process.env.USERPROFILE;
+}
+
+function compile() {
+	let cmd = 'javac ' + filename + ' -d ' + workDir + ' -cp "' + cp + '"';
 	exec(cmd);
 }
 
-function run(filename, args, cp) {
+function run(args) {
 	const shortname = filename.split('.')[0];
-	let cmd = 'java  -cp "./:' + cp + '" ' + shortname + ' ' + args.join(' ');
+	let cmd = 'java  -cp "' + cp + '" ' + shortname + ' ' + args.join(' ');
 	return exec(cmd);
 }
 
@@ -50,10 +81,9 @@ function createPom(deps) {
     `;
 }
 
-function parseDeps(filename) {
+function parseDeps() {
 	console.log('** Searching for dependencies...');
 	const re = /(?:\/\*\*\*)([\s\S]*)(?:\*\/)/m;
-	const file = fs.readFileSync(filename, "utf8");
 	const m = file.match(re);
 	if (m) {
 		const deps = eval(m[1]).map(i => {
@@ -70,19 +100,13 @@ function parseDeps(filename) {
 	console.log('** No dependencies found.');
 }
 
-function resolveDeps(filename) {
-	const deps = parseDeps(filename);
+function resolveDeps() {
+	const deps = parseDeps();
 	if (!deps) return;
 
 	const pom = createPom(deps);
 	fs.writeFileSync('pom.xml', pom);
 	console.log('** Resolving dependencies...');
-	exec('mvn dependency:build-classpath -Dmdep.outputFile="cp.txt"');
+	exec('mvn dependency:build-classpath -Dmdep.outputFile="' + workDir + 'cp.txt"');
 	console.log('** Done.');
 }
-
-resolveDeps(filename);
-const cp = fs.readFileSync('cp.txt', 'utf8');
-compile(filename, cp);
-const out = run(filename, process.argv.slice(3), cp);
-console.log(out.toString('utf8'));
