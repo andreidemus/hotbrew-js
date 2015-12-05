@@ -20,21 +20,21 @@ if (!fs.existsSync(hotbrewDir)) {
     fs.mkdirSync(hotbrewDir);
 }
 
-const workDirs = hotbrewDir + '/work_dirs/'; 
-if (!fs.existsSync(workDirs)) {
-    fs.mkdirSync(workDirs);
+const caches = hotbrewDir + '/caches/'; 
+if (!fs.existsSync(caches)) {
+    fs.mkdirSync(caches);
 }
 
 const file = fs.readFileSync(filename, "utf8");
 
 sha1.update(file);
-const workDir = workDirs + sha1.digest('hex') + '/';
-console.log("** Script work dir is " + workDir);
-if (fs.existsSync(workDir)) {
+const cacheDir = caches + sha1.digest('hex') + '/';
+console.log("** Script cache dir is " + cacheDir);
+if (fs.existsSync(cacheDir)) {
     console.log("** Skipping dependency resolving");
     cp = buildCp();
 } else {
-    fs.mkdirSync(workDir);
+    fs.mkdirSync(cacheDir);
     resolveDeps();
     cp = buildCp();
     compile();
@@ -44,7 +44,7 @@ const out = run(process.argv.slice(3));
 console.log(out.toString('utf8'));
 
 function buildCp() {
-    return workDir + ':' + fs.readFileSync(workDir + 'cp.txt', 'utf8');
+    return cacheDir + ':' + fs.readFileSync(cacheDir + 'cp.txt', 'utf8');
 }
 
 function getUserHome() {
@@ -52,7 +52,7 @@ function getUserHome() {
 }
 
 function compile() {
-    let cmd = 'javac ' + filename + ' -d ' + workDir + ' -cp "' + cp + '"';
+    let cmd = 'javac ' + filename + ' -d ' + cacheDir + ' -cp "' + cp + '"';
     exec(cmd);
 }
 
@@ -113,8 +113,8 @@ function resolveDeps() {
     if (!deps) return;
 
     const pom = createPom(deps);
-    fs.writeFileSync(workDir + 'pom.xml', pom);
+    fs.writeFileSync(cacheDir + 'pom.xml', pom);
     console.log('** Resolving dependencies...');
-    exec('cd ' + workDir + '&& mvn dependency:build-classpath -Dmdep.outputFile="' + workDir + 'cp.txt"');
+    exec('cd ' + cacheDir + '&& mvn dependency:build-classpath -Dmdep.outputFile="' + cacheDir + 'cp.txt"');
     console.log('** Done.');
 }
