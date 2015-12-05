@@ -3,11 +3,12 @@
 'use strict';
 
 if (process.argv.length < 3) {
-	console.log("Usage: j <File.java> <args...>")
-	return 0;
+    console.log("Usage: j <File.java> <args...>")
+    return 0;
 }
 
 const filename = process.argv[2];
+let cp;
 
 const exec = require('child_process').execSync;
 const fs = require('fs');
@@ -29,42 +30,49 @@ const file = fs.readFileSync(filename, "utf8");
 sha1.update(file);
 const workDir = workDirs + sha1.digest('hex') + '/';
 console.log("** Script work dir is " + workDir);
-if (!fs.existsSync(workDir)) {
+if (fs.existsSync(workDir)) {
+    console.log("** Skipping dependency resolving");
+    cp = buildCp();
+} else {
     fs.mkdirSync(workDir);
+    resolveDeps();
+    cp = buildCp();
+    compile();
 }
 
-resolveDeps();
-const cp = workDir + ':' + fs.readFileSync(workDir + 'cp.txt', 'utf8');
-compile();
 const out = run(process.argv.slice(3));
 console.log(out.toString('utf8'));
+
+function buildCp() {
+    return workDir + ':' + fs.readFileSync(workDir + 'cp.txt', 'utf8');
+}
 
 function getUserHome() {
     return process.env.HOME || process.env.USERPROFILE;
 }
 
 function compile() {
-	let cmd = 'javac ' + filename + ' -d ' + workDir + ' -cp "' + cp + '"';
-	exec(cmd);
+    let cmd = 'javac ' + filename + ' -d ' + workDir + ' -cp "' + cp + '"';
+    exec(cmd);
 }
 
 function run(args) {
-	const shortname = filename.split('.')[0];
-	let cmd = 'java  -cp "' + cp + '" ' + shortname + ' ' + args.join(' ');
-	return exec(cmd);
+    const shortname = filename.split('.')[0];
+    let cmd = 'java  -cp "' + cp + '" ' + shortname + ' ' + args.join(' ');
+    return exec(cmd);
 }
 
 function createPom(deps) {
-	let dependencies = deps.map(i => 
-	`
+    let dependencies = deps.map(i =>
+    `
     <dependency>
         <groupId>${i['groupId']}</groupId>
         <artifactId>${i['artifactId']}</artifactId>
         <version>${i['version']}</version>
     </dependency>`)
-	.join('');
+    .join('');
 
-	return `
+    return `
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -82,31 +90,31 @@ function createPom(deps) {
 }
 
 function parseDeps() {
-	console.log('** Searching for dependencies...');
-	const re = /(?:\/\*\*\*)([\s\S]*)(?:\*\/)/m;
-	const m = file.match(re);
-	if (m) {
-		const deps = eval(m[1]).map(i => {
-			const parts = i.split(':');
-			return {
-				'groupId': parts[0],
-				'artifactId': parts[1],
-				'version': parts[2]
-			}
-		});
-		console.log('** ' + deps.length + ' dependencies found');
-		return deps;
-	}
-	console.log('** No dependencies found.');
+    console.log('** Searching for dependencies...');
+    const re = /(?:\/\*\*\*)([\s\S]*)(?:\*\/)/m;
+    const m = file.match(re);
+    if (m) {
+        const deps = eval(m[1]).map(i => {
+            const parts = i.split(':');
+            return {
+                'groupId': parts[0],
+                'artifactId': parts[1],
+                'version': parts[2]
+            }
+        });
+        console.log('** ' + deps.length + ' dependencies found');
+        return deps;
+    }
+    console.log('** No dependencies found.');
 }
 
 function resolveDeps() {
-	const deps = parseDeps();
-	if (!deps) return;
+    const deps = parseDeps();
+    if (!deps) return;
 
-	const pom = createPom(deps);
-	fs.writeFileSync('pom.xml', pom);
-	console.log('** Resolving dependencies...');
-	exec('mvn dependency:build-classpath -Dmdep.outputFile="' + workDir + 'cp.txt"');
-	console.log('** Done.');
+    const pom = createPom(deps);
+    fs.writeFileSync(workDir + 'pom.xml', pom);
+    console.log('** Resolving dependencies...');
+    exec('cd ' + workDir + '&& mvn dependency:build-classpath -Dmdep.outputFile="' + workDir + 'cp.txt"');
+    console.log('** Done.');
 }
