@@ -8,6 +8,7 @@ if (process.argv.length < 3) {
 }
 
 const filename = process.argv[2];
+const shortname = filename.split('.')[0];
 let cp;
 
 const exec = require('child_process').execSync;
@@ -33,6 +34,8 @@ console.log("** Script cache dir is " + cacheDir);
 if (fs.existsSync(cacheDir)) {
     console.log("** Skipping dependency resolving");
     cp = buildCp();
+    if (!fs.existsSync(cacheDir + shortname + '.class'))
+        compile();
 } else {
     fs.mkdirSync(cacheDir);
     resolveDeps();
@@ -61,7 +64,6 @@ function compile() {
 }
 
 function run(args) {
-    const shortname = filename.split('.')[0];
     let cmd = 'java  -cp "' + cp + '" ' + shortname + ' ' + args.join(' ');
     return exec(cmd);
 }
