@@ -44,7 +44,11 @@ const out = run(process.argv.slice(3));
 console.log(out.toString('utf8'));
 
 function buildCp() {
-    return cacheDir + ':' + fs.readFileSync(cacheDir + 'cp.txt', 'utf8');
+    let cp = cacheDir;
+    let path = cacheDir + 'cp.txt';
+    if (fs.existsSync(path))
+        cp += ':' + fs.readFileSync(path, 'utf8');
+    return cp;
 }
 
 function getUserHome() {
