@@ -7,14 +7,15 @@ if (process.argv.length < 3) {
     return 0;
 }
 
-const filename = process.argv[2];
-const shortname = filename.split('.')[0];
-let cp;
-
 const exec = require('child_process').execSync;
 const fs = require('fs');
 const crypto = require('crypto');
 const sha1 = crypto.createHash('sha1');
+const path = require('path');
+
+const filename = process.argv[2];
+const shortname = path.basename(filename, '.java');
+let cp;
 
 const hotbrewDir = getUserHome() + '/.hotbrew';
 if (!fs.existsSync(hotbrewDir)) {
@@ -47,7 +48,7 @@ const out = run(process.argv.slice(3));
 console.log(out.toString('utf8'));
 
 function buildCp() {
-    let cp = cacheDir;
+    let cp = '.:' + cacheDir;
     let path = cacheDir + 'cp.txt';
     if (fs.existsSync(path))
         cp += ':' + fs.readFileSync(path, 'utf8');
