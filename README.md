@@ -1,6 +1,6 @@
 # Hot Brew
 
-![alt img](https://github.com/andreidemus/hotbrew/raw/master/img.jpg)
+![alt img](https://github.com/andreidemus/hotbrew-js/raw/master/img.jpg)
 
 Requires **NodeJS** and **Maven**.
 
