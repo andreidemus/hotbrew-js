@@ -10,4 +10,4 @@ Requires **NodeJS** and **Maven**.
 3. Run `j Script.java`.
 4. Profit.
 
-It supports dependency resolving using **Maven**. Please, chech [example](https://github.com/andreidemus/hotbrew/raw/master/Test.java).
+It supports dependency resolving using **Maven**. Please, chech [example](https://github.com/andreidemus/hotbrew-js/raw/master/Test.java).
